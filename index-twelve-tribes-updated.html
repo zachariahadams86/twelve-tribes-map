@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Twelve Tribes - Interactive Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d3561 0%, #1a1f3a 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            padding: 20px 30px;
+            background: #f8f9fa;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #fff;
+            border-bottom: 2px solid #eee;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .control-section h3 {
+            color: #2d3561;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .btn-secondary.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            padding: 0 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        #map {
+            height: 600px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .scripture-content, .quiz-content {
+            display: none;
+        }
+
+        .scripture-content.active, .quiz-content.active {
+            display: block;
+        }
+
+        .scripture-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .scripture-card {
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .scripture-card:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .scripture-ref {
+            font-weight: bold;
+            color: #2d3561;
+            margin-bottom: 5px;
+        }
+
+        .scripture-text {
+            font-size: 0.9em;
+            color: #495057;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .legend h4 {
+            margin-bottom: 10px;
+            color: #2d3561;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 5px 0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .quiz-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .quiz-question {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-options {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .quiz-option {
+            padding: 15px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quiz-option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .quiz-option.correct {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .quiz-option.incorrect {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+
+        .learn-more-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .learn-more-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .footer {
+            background: #2d3561;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .how-to-use {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .how-to-use h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .how-to-use ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tabs {
+                overflow-x: auto;
+            }
+
+            #map {
+                height: 500px;
+            }
+
+            .control-section {
+                padding: 12px;
+            }
+
+            .button-group {
+                gap: 8px;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 0.85em;
+            }
+
+            .controls {
+                padding: 15px;
+            }
+
+            /* Make popups more readable on mobile */
+            .leaflet-popup-content-wrapper {
+                max-width: 250px !important;
+            }
+
+            .leaflet-popup-content {
+                margin: 10px !important;
+                font-size: 0.9em !important;
+                line-height: 1.4 !important;
+            }
+
+            .leaflet-popup-content h3 {
+                font-size: 1.1em !important;
+                margin-bottom: 8px !important;
+            }
+
+            .leaflet-popup-content p {
+                margin: 5px 0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ The Twelve Tribes of Israel</h1>
+            <p>Exodus & Numbers - Tribal Boundaries and Migrations</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-number">12</div>
+                <div class="stat-label">Tribes</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">40</div>
+                <div class="stat-label">Years Wandering</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">42</div>
+                <div class="stat-label">Encampments</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">600K+</div>
+                <div class="stat-label">Men of War</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-section">
+                <h3>📍 Journey Navigation</h3>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="showAllTribes()">🌍 View All Tribes</button>
+                    <button class="btn btn-secondary" onclick="startExodusJourney()">📜 Exodus from Egypt</button>
+                    <button class="btn btn-secondary" onclick="showTribalAllotments()">🗺️ Tribal Allotments</button>
+                </div>
+            </div>
+
+            <div class="control-section" id="stepControls" style="display: none;">
+                <h3>🚶 Step Through Journey</h3>
+                <div id="currentStep" style="margin-bottom: 10px; font-size: 1.1em; color: #667eea; font-weight: bold;"></div>
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="previousStep()">← Previous</button>
+                    <button class="btn btn-secondary" onclick="nextStep()">Next →</button>
+                    <button class="btn btn-secondary" onclick="resetJourney()">🔄 Reset to Start</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>🏛️ Individual Tribes</h3>
+                <div class="button-group" id="tribeButtons"></div>
+            </div>
+
+            <div class="how-to-use">
+                <h4>💡 How to Use:</h4>
+                <ul>
+                    <li>Click markers on the map for scripture references and details</li>
+                    <li>Select "Exodus from Egypt" to walk step-by-step through the journey</li>
+                    <li>Use Previous/Next buttons to navigate through each stop</li>
+                    <li>Select specific tribes to highlight their territory</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('map')">📍 Map</button>
+            <button class="tab" onclick="switchTab('scripture')">📖 Scripture</button>
+            <button class="tab" onclick="switchTab('quiz')">🎯 Quiz</button>
+        </div>
+
+        <div class="content">
+            <div id="mapContent" class="map-content">
+                <div id="map"></div>
+            </div>
+
+            <div id="scriptureContent" class="scripture-content">
+                <h2 style="color: #2d3561; margin-bottom: 20px;">Key Scripture References</h2>
+                <div class="scripture-list" id="scriptureList"></div>
+            </div>
+
+            <div id="quizContent" class="quiz-content">
+                <div class="quiz-container">
+                    <h2 style="color: #2d3561; margin-bottom: 20px;">Test Your Knowledge</h2>
+                    <p style="margin-bottom: 20px;">Ready to test what you've learned about the Twelve Tribes and their journey?</p>
+                    <button class="btn btn-primary" onclick="startQuiz()">🚀 Start Quiz</button>
+                    <div id="quizArea"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Created by Zachariah Adams © 2024
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map centered on ancient Israel/Canaan
+        const map = L.map('map').setView([31.5, 35.0], 8);
+
+        // Use CartoDB Positron which has good English labels
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // Tribe data with colors and territories
+        const tribes = {
+            judah: { name: 'Judah', color: '#8B4513', blessing: 'Genesis 49:8-12' },
+            reuben: { name: 'Reuben', color: '#DC143C', blessing: 'Genesis 49:3-4' },
+            simeon: { name: 'Simeon', color: '#FF8C00', blessing: 'Genesis 49:5-7' },
+            levi: { name: 'Levi', color: '#9370DB', blessing: 'Genesis 49:5-7' },
+            zebulun: { name: 'Zebulun', color: '#4682B4', blessing: 'Genesis 49:13' },
+            issachar: { name: 'Issachar', color: '#2F4F4F', blessing: 'Genesis 49:14-15' },
+            dan: { name: 'Dan', color: '#8B0000', blessing: 'Genesis 49:16-18' },
+            gad: { name: 'Gad', color: '#556B2F', blessing: 'Genesis 49:19' },
+            asher: { name: 'Asher', color: '#DAA520', blessing: 'Genesis 49:20' },
+            naphtali: { name: 'Naphtali', color: '#CD853F', blessing: 'Genesis 49:21' },
+            joseph: { name: 'Joseph (Ephraim & Manasseh)', color: '#228B22', blessing: 'Genesis 49:22-26' },
+            benjamin: { name: 'Benjamin', color: '#4B0082', blessing: 'Genesis 49:27' }
+        };
+
+        // Exodus route locations with scripture references
+        const exodusRoute = [
+            { name: 'Rameses', coords: [30.8, 31.8], scripture: 'Exodus 12:37; Numbers 33:3', description: 'Starting point of the Exodus' },
+            { name: 'Succoth', coords: [30.6, 32.1], scripture: 'Exodus 12:37; Numbers 33:5', description: 'First stop after leaving Egypt' },
+            { name: 'Etham', coords: [30.4, 32.3], scripture: 'Exodus 13:20; Numbers 33:6', description: 'Edge of the wilderness' },
+            { name: 'Pi-hahiroth', coords: [30.0, 32.4], scripture: 'Exodus 14:2; Numbers 33:7', description: 'Before the Red Sea crossing' },
+            { name: 'Red Sea Crossing', coords: [29.8, 32.6], scripture: 'Exodus 14:21-31', description: 'Miraculous crossing of the Red Sea' },
+            { name: 'Marah', coords: [29.4, 32.9], scripture: 'Exodus 15:23; Numbers 33:8', description: 'Bitter waters made sweet' },
+            { name: 'Elim', coords: [29.2, 33.0], scripture: 'Exodus 15:27; Numbers 33:9', description: '12 springs and 70 palm trees' },
+            { name: 'Wilderness of Sin', coords: [28.8, 33.2], scripture: 'Exodus 16:1; Numbers 33:11', description: 'Manna and quail provided' },
+            { name: 'Rephidim', coords: [28.5, 33.8], scripture: 'Exodus 17:1; Numbers 33:14', description: 'Water from the rock; Battle with Amalek' },
+            { name: 'Mount Sinai', coords: [28.5, 34.2], scripture: 'Exodus 19:1-2; Numbers 33:15', description: 'Ten Commandments received' },
+            { name: 'Kadesh Barnea', coords: [30.7, 34.4], scripture: 'Numbers 13:26; 20:1', description: 'Spies sent out; 38 years wandering' },
+            { name: 'Mount Hor', coords: [30.3, 35.4], scripture: 'Numbers 20:22-29; 33:38', description: 'Aaron dies' },
+            { name: 'Plains of Moab', coords: [31.8, 35.7], scripture: 'Numbers 22:1; 33:48', description: 'Encamped across from Jericho' }
+        ];
+
+        // Tribal territories (approximate centers)
+        const tribalTerritories = [
+            { tribe: 'judah', name: 'Judah', coords: [31.4, 35.0], scripture: 'Numbers 2:3-9; 34:1-12', description: 'Southern tribe, royal lineage' },
+            { tribe: 'benjamin', name: 'Benjamin', coords: [31.8, 35.2], scripture: 'Numbers 2:18-24', description: 'Smallest tribe, Jerusalem borders' },
+            { tribe: 'simeon', name: 'Simeon', coords: [31.2, 34.7], scripture: 'Numbers 2:12-13', description: 'Within Judah\'s territory' },
+            { tribe: 'dan', name: 'Dan', coords: [31.9, 34.9], scripture: 'Numbers 2:25-31', description: 'Coastal then northern migration' },
+            { tribe: 'joseph', name: 'Ephraim', coords: [32.1, 35.2], scripture: 'Numbers 2:18-24', description: 'Central highlands, powerful tribe' },
+            { tribe: 'joseph', name: 'Manasseh (West)', coords: [32.3, 35.4], scripture: 'Numbers 2:18-24', description: 'Both sides of Jordan' },
+            { tribe: 'issachar', name: 'Issachar', coords: [32.6, 35.3], scripture: 'Numbers 2:5-6', description: 'Jezreel Valley region' },
+            { tribe: 'zebulun', name: 'Zebulun', coords: [32.7, 35.2], scripture: 'Numbers 2:7-8', description: 'Northern territory near sea' },
+            { tribe: 'asher', name: 'Asher', coords: [33.0, 35.1], scripture: 'Numbers 2:27-28', description: 'Mediterranean coastline' },
+            { tribe: 'naphtali', name: 'Naphtali', coords: [32.9, 35.5], scripture: 'Numbers 2:29-30', description: 'Northern Galilee' },
+            { tribe: 'reuben', name: 'Reuben', coords: [31.5, 35.8], scripture: 'Numbers 2:10-11; 32:1-5', description: 'East of Jordan, south' },
+            { tribe: 'gad', name: 'Gad', coords: [31.8, 35.9], scripture: 'Numbers 2:14-15; 32:1-5', description: 'East of Jordan, central' },
+            { tribe: 'joseph', name: 'Manasseh (East)', coords: [32.5, 35.8], scripture: 'Numbers 32:33-42', description: 'East of Jordan, north' },
+            { tribe: 'levi', name: 'Levites (No Territory)', coords: [31.95, 35.25], scripture: 'Numbers 18:20-24; 35:1-8', description: 'Received 48 cities among all tribes instead of land inheritance' }
+        ];
+
+        // Tribal boundary polygons (approximate)
+        const tribalBoundaries = {
+            judah: [
+                [31.7, 34.5], [31.3, 34.7], [31.0, 35.0], [31.0, 35.3],
+                [31.3, 35.4], [31.6, 35.3], [31.7, 34.8], [31.7, 34.5]
+            ],
+            benjamin: [
+                [31.7, 35.1], [31.75, 35.3], [31.95, 35.35], [32.0, 35.2],
+                [31.9, 35.0], [31.7, 35.1]
+            ],
+            simeon: [
+                [31.0, 34.5], [30.8, 34.7], [31.0, 34.9], [31.2, 34.8],
+                [31.2, 34.6], [31.0, 34.5]
+            ],
+            dan: [
+                [31.8, 34.75], [31.7, 34.9], [31.85, 35.05], [32.0, 34.95],
+                [32.0, 34.8], [31.8, 34.75]
+            ],
+            ephraim: [
+                [31.95, 35.05], [31.9, 35.3], [32.15, 35.4], [32.25, 35.2],
+                [32.2, 35.0], [31.95, 35.05]
+            ],
+            manasseh_west: [
+                [32.15, 35.35], [32.05, 35.5], [32.4, 35.6], [32.5, 35.4],
+                [32.35, 35.3], [32.15, 35.35]
+            ],
+            issachar: [
+                [32.4, 35.2], [32.3, 35.35], [32.65, 35.4], [32.75, 35.25],
+                [32.6, 35.1], [32.4, 35.2]
+            ],
+            zebulun: [
+                [32.6, 35.05], [32.55, 35.2], [32.8, 35.3], [32.9, 35.15],
+                [32.75, 35.0], [32.6, 35.05]
+            ],
+            asher: [
+                [32.85, 35.05], [32.8, 35.25], [33.1, 35.35], [33.2, 35.15],
+                [33.05, 34.95], [32.85, 35.05]
+            ],
+            naphtali: [
+                [32.75, 35.3], [32.7, 35.5], [33.0, 35.65], [33.15, 35.5],
+                [33.05, 35.3], [32.75, 35.3]
+            ],
+            reuben: [
+                [31.2, 35.6], [31.0, 35.8], [31.3, 36.0], [31.6, 35.95],
+                [31.6, 35.7], [31.2, 35.6]
+            ],
+            gad: [
+                [31.6, 35.7], [31.5, 35.95], [31.9, 36.1], [32.1, 35.95],
+                [32.0, 35.75], [31.6, 35.7]
+            ],
+            manasseh_east: [
+                [32.0, 35.75], [31.95, 36.0], [32.6, 36.1], [32.7, 35.8],
+                [32.4, 35.7], [32.0, 35.75]
+            ]
+        };
+
+        // Scripture references with full verses
+        const scriptures = [
+            { 
+                ref: 'Exodus 12:37', 
+                step: 1,
+                title: 'The Exodus Begins - Step 1: Rameses', 
+                text: 'And the children of Israel journeyed from Rameses to Succoth, about six hundred thousand on foot that were men, beside children. And a mixed multitude went up also with them; and flocks, and herds, even very much cattle. And they baked unleavened cakes of the dough which they brought forth out of Egypt, for it was not leavened; because they were thrust out of Egypt, and could not tarry, neither had they prepared for themselves any victual.' 
+            },
+            { 
+                ref: 'Exodus 12:37; Numbers 33:5', 
+                step: 2,
+                title: 'First Encampment - Step 2: Succoth', 
+                text: 'And the children of Israel journeyed from Rameses to Succoth, about six hundred thousand on foot that were men, beside children. (Numbers 33:5) And they departed from Rameses in the first month, on the fifteenth day of the first month; on the morrow after the passover the children of Israel went out with an high hand in the sight of all the Egyptians.' 
+            },
+            { 
+                ref: 'Exodus 13:20; Numbers 33:6', 
+                step: 3,
+                title: 'Edge of Wilderness - Step 3: Etham', 
+                text: 'And they took their journey from Succoth, and encamped in Etham, in the edge of the wilderness. And the LORD went before them by day in a pillar of a cloud, to lead them the way; and by night in a pillar of fire, to give them light; to go by day and night.' 
+            },
+            { 
+                ref: 'Exodus 14:1-2; Numbers 33:7', 
+                step: 4,
+                title: 'Before the Red Sea - Step 4: Pi-hahiroth', 
+                text: 'And the LORD spake unto Moses, saying, Speak unto the children of Israel, that they turn and encamp before Pihahiroth, between Migdol and the sea, over against Baalzephon: before it shall ye encamp by the sea. For Pharaoh will say of the children of Israel, They are entangled in the land, the wilderness hath shut them in.' 
+            },
+            { 
+                ref: 'Exodus 14:21-31', 
+                step: 5,
+                title: 'The Great Miracle - Step 5: Red Sea Crossing', 
+                text: 'And Moses stretched out his hand over the sea; and the LORD caused the sea to go back by a strong east wind all that night, and made the sea dry land, and the waters were divided. And the children of Israel went into the midst of the sea upon the dry ground: and the waters were a wall unto them on their right hand, and on their left. And the Egyptians pursued, and went in after them to the midst of the sea, even all Pharaoh\'s horses, his chariots, and his horsemen. And the LORD said unto Moses, Stretch out thine hand over the sea, that the waters may come again upon the Egyptians, upon their chariots, and upon their horsemen. And Moses stretched forth his hand over the sea, and the sea returned to his strength when the morning appeared; and the Egyptians fled against it; and the LORD overthrew the Egyptians in the midst of the sea. Thus the LORD saved Israel that day out of the hand of the Egyptians.' 
+            },
+            { 
+                ref: 'Exodus 15:23-25; Numbers 33:8', 
+                step: 6,
+                title: 'Bitter Waters Made Sweet - Step 6: Marah', 
+                text: 'And when they came to Marah, they could not drink of the waters of Marah, for they were bitter: therefore the name of it was called Marah. And the people murmured against Moses, saying, What shall we drink? And he cried unto the LORD; and the LORD shewed him a tree, which when he had cast into the waters, the waters were made sweet: there he made for them a statute and an ordinance, and there he proved them.' 
+            },
+            { 
+                ref: 'Exodus 15:27; Numbers 33:9', 
+                step: 7,
+                title: 'Oasis of Rest - Step 7: Elim', 
+                text: 'And they came to Elim, where were twelve wells of water, and threescore and ten palm trees: and they encamped there by the waters. (Numbers 33:9) And they removed from Marah, and came unto Elim: and in Elim were twelve fountains of water, and threescore and ten palm trees; and they pitched there.' 
+            },
+            { 
+                ref: 'Exodus 16:1-4, 13-15', 
+                step: 8,
+                title: 'Bread from Heaven - Step 8: Wilderness of Sin', 
+                text: 'And they took their journey from Elim, and all the congregation of the children of Israel came unto the wilderness of Sin, which is between Elim and Sinai, on the fifteenth day of the second month after their departing out of the land of Egypt. And the whole congregation of the children of Israel murmured against Moses and Aaron in the wilderness: And the children of Israel said unto them, Would to God we had died by the hand of the LORD in the land of Egypt, when we sat by the flesh pots, and when we did eat bread to the full; for ye have brought us forth into this wilderness, to kill this whole assembly with hunger. Then said the LORD unto Moses, Behold, I will rain bread from heaven for you; and the people shall go out and gather a certain rate every day, that I may prove them, whether they will walk in my law, or no. And it came to pass, that at even the quails came up, and covered the camp: and in the morning the dew lay round about the host. And when the dew that lay was gone up, behold, upon the face of the wilderness there lay a small round thing, as small as the hoar frost on the ground. And when the children of Israel saw it, they said one to another, It is manna: for they wist not what it was. And Moses said unto them, This is the bread which the LORD hath given you to eat.' 
+            },
+            { 
+                ref: 'Exodus 17:1-7, 8-13; Numbers 33:14', 
+                step: 9,
+                title: 'Water & War - Step 9: Rephidim', 
+                text: 'And all the congregation of the children of Israel journeyed from the wilderness of Sin, after their journeys, according to the commandment of the LORD, and pitched in Rephidim: and there was no water for the people to drink. Wherefore the people did chide with Moses, and said, Give us water that we may drink. And Moses said unto them, Why chide ye with me? wherefore do ye tempt the LORD? And Moses cried unto the LORD, saying, What shall I do unto this people? they be almost ready to stone me. And the LORD said unto Moses, Go on before the people, and take with thee of the elders of Israel; and thy rod, wherewith thou smotest the river, take in thine hand, and go. Behold, I will stand before thee there upon the rock in Horeb; and thou shalt smite the rock, and there shall come water out of it, that the people may drink. And Moses did so in the sight of the elders of Israel. Then came Amalek, and fought with Israel in Rephidim. And Moses said unto Joshua, Choose us out men, and go out, fight with Amalek: to morrow I will stand on the top of the hill with the rod of God in mine hand. And Moses, Aaron, and Hur went up to the top of the hill. And it came to pass, when Moses held up his hand, that Israel prevailed: and when he let down his hand, Amalek prevailed. So Joshua discomfited Amalek and his people with the edge of the sword.' 
+            },
+            { 
+                ref: 'Exodus 19:1-2, 16-20; 20:1-17', 
+                step: 10,
+                title: 'The Law Given - Step 10: Mount Sinai', 
+                text: 'In the third month, when the children of Israel were gone forth out of the land of Egypt, the same day came they into the wilderness of Sinai. For they were departed from Rephidim, and were come to the desert of Sinai, and had pitched in the wilderness; and there Israel camped before the mount. And it came to pass on the third day in the morning, that there were thunders and lightnings, and a thick cloud upon the mount, and the voice of the trumpet exceeding loud; so that all the people that was in the camp trembled. And Moses brought forth the people out of the camp to meet with God; and they stood at the nether part of the mount. And mount Sinai was altogether on a smoke, because the LORD descended upon it in fire: and the smoke thereof ascended as the smoke of a furnace, and the whole mount quaked greatly. And when the voice of the trumpet sounded long, and waxed louder and louder, Moses spake, and God answered him by a voice. And the LORD came down upon mount Sinai, on the top of the mount: and the LORD called Moses up to the top of the mount; and Moses went up. [Here God gave the Ten Commandments - Exodus 20:1-17]' 
+            },
+            { 
+                ref: 'Numbers 13:1-3, 25-33; 14:1-4', 
+                step: 11,
+                title: 'Rebellion & Wandering - Step 11: Kadesh Barnea', 
+                text: 'And the LORD spake unto Moses, saying, Send thou men, that they may search the land of Canaan, which I give unto the children of Israel: of every tribe of their fathers shall ye send a man, every one a ruler among them. And Moses by the commandment of the LORD sent them from the wilderness of Paran: all those men were heads of the children of Israel. And they returned from searching of the land after forty days. And they came and shewed him, and all the congregation, the fruit of the land. And they told him, and said, We came unto the land whither thou sentest us, and surely it floweth with milk and honey. Nevertheless the people be strong that dwell in the land, and the cities are walled, and very great. And Caleb stilled the people before Moses, and said, Let us go up at once, and possess it; for we are well able to overcome it. But the men that went up with him said, We be not able to go up against the people; for they are stronger than we. And all the congregation lifted up their voice, and cried; and the people wept that night. And all the children of Israel murmured against Moses and against Aaron: and the whole congregation said unto them, Would God that we had died in the land of Egypt! or would God we had died in this wilderness!' 
+            },
+            { 
+                ref: 'Numbers 20:22-29; 33:38', 
+                step: 12,
+                title: 'Aaron Dies - Step 12: Mount Hor', 
+                text: 'And the children of Israel, even the whole congregation, journeyed from Kadesh, and came unto mount Hor. And the LORD spake unto Moses and Aaron in mount Hor, by the coast of the land of Edom, saying, Aaron shall be gathered unto his people: for he shall not enter into the land which I have given unto the children of Israel, because ye rebelled against my word at the water of Meribah. Take Aaron and Eleazar his son, and bring them up unto mount Hor: And strip Aaron of his garments, and put them upon Eleazar his son: and Aaron shall be gathered unto his people, and shall die there. And Moses did as the LORD commanded: and they went up into mount Hor in the sight of all the congregation. And Moses stripped Aaron of his garments, and put them upon Eleazar his son; and Aaron died there in the top of the mount: and Moses and Eleazar came down from the mount. And when all the congregation saw that Aaron was dead, they mourned for Aaron thirty days, even all the house of Israel. (Numbers 33:38) And Aaron the priest went up into mount Hor at the commandment of the LORD, and died there, in the fortieth year after the children of Israel were come out of the land of Egypt, in the first day of the fifth month.' 
+            },
+            { 
+                ref: 'Numbers 22:1; 33:48-49', 
+                step: 13,
+                title: 'Edge of the Promised Land - Step 13: Plains of Moab', 
+                text: 'And the children of Israel set forward, and pitched in the plains of Moab on this side Jordan by Jericho. (Numbers 33:48-49) And they departed from the mountains of Abarim, and pitched in the plains of Moab by Jordan near Jericho. And they pitched by Jordan, from Bethjesimoth even unto Abelshittim in the plains of Moab.' 
+            },
+            { 
+                ref: 'Numbers 1:1-3, 45-46', 
+                step: null,
+                title: 'Census of the Tribes at Sinai', 
+                text: 'And the LORD spake unto Moses in the wilderness of Sinai, in the tabernacle of the congregation, on the first day of the second month, in the second year after they were come out of the land of Egypt, saying, Take ye the sum of all the congregation of the children of Israel, after their families, by the house of their fathers, with the number of their names, every male by their polls; From twenty years old and upward, all that are able to go forth to war in Israel: thou and Aaron shall number them by their armies. So were all those that were numbered of the children of Israel, by the house of their fathers, from twenty years old and upward, all that were able to go forth to war in Israel; Even all they that were numbered were six hundred thousand and three thousand and five hundred and fifty.' 
+            },
+            { 
+                ref: 'Numbers 2:1-2, 17', 
+                step: null,
+                title: 'Camp Organization', 
+                text: 'And the LORD spake unto Moses and unto Aaron, saying, Every man of the children of Israel shall pitch by his own standard, with the ensign of their father\'s house: far off about the tabernacle of the congregation shall they pitch. Then the tabernacle of the congregation shall set forward with the camp of the Levites in the midst of the camp: as they encamp, so shall they set forward, every man in his place by their standards.' 
+            },
+            { 
+                ref: 'Numbers 14:26-35', 
+                step: null,
+                title: '40 Years of Wandering Decreed', 
+                text: 'And the LORD spake unto Moses and unto Aaron, saying, How long shall I bear with this evil congregation, which murmur against me? I have heard the murmurings of the children of Israel, which they murmur against me. Say unto them, As truly as I live, saith the LORD, as ye have spoken in mine ears, so will I do to you: Your carcases shall fall in this wilderness; and all that were numbered of you, according to your whole number, from twenty years old and upward which have murmured against me. Doubtless ye shall not come into the land, concerning which I sware to make you dwell therein, save Caleb the son of Jephunneh, and Joshua the son of Nun. But your little ones, which ye said should be a prey, them will I bring in, and they shall know the land which ye have despised. But as for you, your carcases, they shall fall in this wilderness. And your children shall wander in the wilderness forty years, and bear your whoredoms, until your carcases be wasted in the wilderness. After the number of the days in which ye searched the land, even forty days, each day for a year, shall ye bear your iniquities, even forty years, and ye shall know my breach of promise.' 
+            },
+            { 
+                ref: 'Numbers 26:1-2, 51, 63-65', 
+                step: null,
+                title: 'Second Census in Plains of Moab', 
+                text: 'And it came to pass after the plague, that the LORD spake unto Moses and unto Eleazar the son of Aaron the priest, saying, Take the sum of all the congregation of the children of Israel, from twenty years old and upward, throughout their fathers\' house, all that are able to go to war in Israel. These were they that were numbered of the children of Israel, six hundred thousand and a thousand seven hundred and thirty. These are they that were numbered by Moses and Eleazar the priest, who numbered the children of Israel in the plains of Moab by Jordan near Jericho. But among these there was not a man of them whom Moses and Aaron the priest numbered, when they numbered the children of Israel in the wilderness of Sinai. For the LORD had said of them, They shall surely die in the wilderness. And there was not left a man of them, save Caleb the son of Jephunneh, and Joshua the son of Nun.' 
+            },
+            { 
+                ref: 'Numbers 33:1-4', 
+                step: null,
+                title: 'Complete Journey List', 
+                text: 'These are the journeys of the children of Israel, which went forth out of the land of Egypt with their armies under the hand of Moses and Aaron. And Moses wrote their goings out according to their journeys by the commandment of the LORD: and these are their journeys according to their goings out. And they departed from Rameses in the first month, on the fifteenth day of the first month; on the morrow after the passover the children of Israel went out with an high hand in the sight of all the Egyptians. For the Egyptians buried all their firstborn, which the LORD had smitten among them: upon their gods also the LORD executed judgments.' 
+            },
+            { 
+                ref: 'Numbers 34:1-12', 
+                step: null,
+                title: 'Boundaries of Canaan Defined', 
+                text: 'And the LORD spake unto Moses, saying, Command the children of Israel, and say unto them, When ye come into the land of Canaan; (this is the land that shall fall unto you for an inheritance, even the land of Canaan with the coasts thereof:) Then your south quarter shall be from the wilderness of Zin along by the coast of Edom, and your south border shall be the outmost coast of the salt sea eastward: And your border shall turn from the south to the ascent of Akrabbim, and pass on to Zin: and the going forth thereof shall be from the south to Kadeshbarnea, and shall go on to Hazaraddar, and pass on to Azmon: And the border shall fetch a compass from Azmon unto the river of Egypt, and the goings out of it shall be at the sea. And as for the western border, ye shall even have the great sea for a border: this shall be your west border. And this shall be your north border: from the great sea ye shall point out for you mount Hor: From mount Hor ye shall point out your border unto the entrance of Hamath; and the goings forth of the border shall be to Zedad: And the border shall go on to Ziphron, and the goings out of it shall be at Hazarenan: this shall be your north border. And ye shall point out your east border from Hazarenan to Shepham: And the coast shall go down from Shepham to Riblah, on the east side of Ain; and the border shall descend, and shall reach unto the side of the sea of Chinnereth eastward: And the border shall go down to Jordan, and the goings out of it shall be at the salt sea: this shall be your land with the coasts thereof round about.' 
+            }
+        ];
+
+        // Quiz questions
+        const quizQuestions = [
+            {
+                question: 'How many tribes of Israel were there?',
+                options: ['10', '11', '12', '13'],
+                correct: 2
+            },
+            {
+                question: 'Which tribe received no land inheritance because they served as priests?',
+                options: ['Dan', 'Levi', 'Simeon', 'Benjamin'],
+                correct: 1
+            },
+            {
+                question: 'How long did Israel wander in the wilderness?',
+                options: ['30 years', '40 years', '50 years', '70 years'],
+                correct: 1
+            },
+            {
+                question: 'Where did Moses receive the Ten Commandments?',
+                options: ['Mount Nebo', 'Mount Carmel', 'Mount Sinai', 'Mount Horeb'],
+                correct: 2
+            },
+            {
+                question: 'How many spies did Moses send to scout Canaan?',
+                options: ['10', '12', '70', '144'],
+                correct: 1
+            },
+            {
+                question: 'Which two tribes settled east of the Jordan River initially?',
+                options: ['Judah and Benjamin', 'Reuben and Gad', 'Ephraim and Manasseh', 'Dan and Naphtali'],
+                correct: 1
+            },
+            {
+                question: 'What was provided as food in the wilderness?',
+                options: ['Bread from towns', 'Manna from heaven', 'Fish from the sea', 'Grain from Egypt'],
+                correct: 1
+            },
+            {
+                question: 'Where did the Exodus begin?',
+                options: ['Rameses', 'Cairo', 'Memphis', 'Thebes'],
+                correct: 0
+            },
+            {
+                question: 'Which tribe was known for producing fierce warriors, compared to a wolf?',
+                options: ['Judah', 'Dan', 'Benjamin', 'Gad'],
+                correct: 2
+            },
+            {
+                question: 'How many men of war were counted in the first census (approximately)?',
+                options: ['400,000', '600,000', '800,000', '1,000,000'],
+                correct: 1
+            }
+        ];
+
+        let markers = [];
+        let polylines = [];
+        let currentQuiz = 0;
+        let quizScore = 0;
+        let currentStep = 0;
+        let isSteppingThrough = false;
+        let activeMarkers = [];
+        let activeNavButton = null;
+
+        // Create tribe buttons
+        const tribeButtonsContainer = document.getElementById('tribeButtons');
+        Object.entries(tribes).forEach(([key, tribe]) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-secondary';
+            btn.textContent = tribe.name;
+            btn.onclick = () => highlightTribe(key);
+            tribeButtonsContainer.appendChild(btn);
+        });
+
+        // Create scripture cards
+        const scriptureList = document.getElementById('scriptureList');
+        scriptures.forEach((scripture, index) => {
+            const card = document.createElement('div');
+            card.className = 'scripture-card';
+            
+            const stepLabel = scripture.step ? `<span style="background: #667eea; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; margin-right: 8px;">Step ${scripture.step}</span>` : '';
+            
+            const preview = scripture.text.length > 200 ? scripture.text.substring(0, 200) + '...' : scripture.text;
+            
+            card.innerHTML = `
+                <div class="scripture-ref">${stepLabel}${scripture.ref}</div>
+                <div class="scripture-title" style="font-weight: 600; color: #2d3561; margin: 5px 0;">${scripture.title}</div>
+                <div class="scripture-text scripture-preview-${index}">${preview}</div>
+                <div class="scripture-text scripture-full-${index}" style="display: none;">${scripture.text}</div>
+                ${scripture.text.length > 200 ? `<button class="btn btn-secondary" style="margin-top: 10px; padding: 5px 15px; font-size: 0.85em;" onclick="toggleScripture(${index})">Read Full Passage</button>` : ''}
+            `;
+            
+            if (scripture.step) {
+                card.onclick = (e) => {
+                    if (!e.target.classList.contains('btn')) {
+                        startExodusJourney();
+                        currentStep = scripture.step - 1;
+                        showCurrentStep();
+                        // Switch to map tab
+                        document.querySelectorAll('.tab')[0].click();
+                    }
+                };
+                card.style.cursor = 'pointer';
+            }
+            
+            scriptureList.appendChild(card);
+        });
+
+        function clearMap() {
+            markers.forEach(marker => map.removeLayer(marker));
+            polylines.forEach(line => map.removeLayer(line));
+            activeMarkers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            polylines = [];
+            activeMarkers = [];
+            isSteppingThrough = false;
+        }
+
+        function setActiveNavButton(buttonText) {
+            // Remove active class from all nav buttons
+            document.querySelectorAll('.controls .btn-primary, .controls .btn-secondary').forEach(btn => {
+                if (btn.textContent.includes('View All Tribes') || 
+                    btn.textContent.includes('Exodus from Egypt') || 
+                    btn.textContent.includes('Tribal Allotments')) {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-secondary');
+                }
+            });
+            
+            // Set clicked button as active
+            document.querySelectorAll('.controls .btn').forEach(btn => {
+                if (btn.textContent.includes(buttonText)) {
+                    btn.classList.remove('btn-secondary');
+                    btn.classList.add('btn-primary');
+                }
+            });
+        }
+
+        function showAllTribes() {
+            clearMap();
+            setActiveNavButton('View All Tribes');
+            document.getElementById('stepControls').style.display = 'none';
+            
+            // Draw boundaries first
+            Object.entries(tribalBoundaries).forEach(([key, coords]) => {
+                const tribe = Object.values(tribes).find(t => 
+                    t.name.toLowerCase().includes(key.replace('_', ' ').split(' ')[0]) ||
+                    key.includes('ephraim') && t.name.includes('Joseph')
+                );
+                
+                if (tribe) {
+                    const polygon = L.polygon(coords, {
+                        color: tribe.color,
+                        fillColor: tribe.color,
+                        fillOpacity: 0.15,
+                        weight: 2,
+                        opacity: 0.6
+                    }).addTo(map);
+                    polylines.push(polygon);
+                }
+            });
+            
+            // Then add markers
+            tribalTerritories.forEach(territory => {
+                const tribeInfo = tribes[territory.tribe];
+                const marker = L.circleMarker(territory.coords, {
+                    radius: 8,
+                    fillColor: tribeInfo.color,
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+
+                marker.bindPopup(`
+                    <strong>${territory.name}</strong><br>
+                    ${territory.description}<br>
+                    <em>${territory.scripture}</em>
+                `);
+                markers.push(marker);
+            });
+            map.setView([32.0, 35.3], 8);
+        }
+
+        function showExodusRoute() {
+            clearMap();
+            const routeCoords = exodusRoute.map(loc => loc.coords);
+            const polyline = L.polyline(routeCoords, {
+                color: '#DC143C',
+                weight: 3,
+                opacity: 0.7
+            }).addTo(map);
+            polylines.push(polyline);
+
+            exodusRoute.forEach((location, index) => {
+                const marker = L.marker(location.coords).addTo(map);
+                marker.bindPopup(`
+                    <strong>Step ${index + 1}: ${location.name}</strong><br>
+                    ${location.description}<br>
+                    <em>${location.scripture}</em>
+                `);
+                markers.push(marker);
+            });
+
+            map.fitBounds(polyline.getBounds());
+        }
+
+        function startExodusJourney() {
+            clearMap();
+            setActiveNavButton('Exodus from Egypt');
+            currentStep = 0;
+            isSteppingThrough = true;
+            document.getElementById('stepControls').style.display = 'block';
+            showCurrentStep();
+        }
+
+        function showCurrentStep() {
+            // Clear previous active markers but keep the path
+            activeMarkers.forEach(marker => map.removeLayer(marker));
+            activeMarkers = [];
+
+            // Draw path up to current step
+            if (currentStep > 0) {
+                const pathCoords = exodusRoute.slice(0, currentStep + 1).map(loc => loc.coords);
+                polylines.forEach(line => map.removeLayer(line));
+                polylines = [];
+                
+                const polyline = L.polyline(pathCoords, {
+                    color: '#DC143C',
+                    weight: 4,
+                    opacity: 0.8
+                }).addTo(map);
+                polylines.push(polyline);
+            }
+
+            // Show all previous stops as smaller markers
+            for (let i = 0; i <= currentStep; i++) {
+                const location = exodusRoute[i];
+                const isCurrentStop = (i === currentStep);
+                
+                const marker = L.marker(location.coords, {
+                    icon: L.divIcon({
+                        className: 'custom-marker',
+                        html: `<div style="
+                            background: ${isCurrentStop ? '#DC143C' : '#666'};
+                            color: white;
+                            border-radius: 50%;
+                            width: ${isCurrentStop ? '35px' : '25px'};
+                            height: ${isCurrentStop ? '35px' : '25px'};
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-weight: bold;
+                            font-size: ${isCurrentStop ? '16px' : '12px'};
+                            border: 3px solid white;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        ">${i + 1}</div>`,
+                        iconSize: [35, 35],
+                        iconAnchor: [17, 17]
+                    })
+                }).addTo(map);
+
+                // Map step numbers to their GitHub Pages URLs
+                const stepUrls = {
+                    1: 'https://zachariahadams86.github.io/rameses/',
+                    // Add more as you create them:
+                    // 2: 'https://zachariahadams86.github.io/succoth/',
+                    // 3: 'https://zachariahadams86.github.io/etham/',
+                    // etc.
+                };
+                
+                const stepUrl = stepUrls[i + 1];
+                const learnMoreBtn = stepUrl ? `<a href="${stepUrl}" target="_blank" class="learn-more-btn" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 6px; font-size: 0.9em; font-weight: 500;">📚 Learn More</a>` : '';
+
+                const popupContent = `
+                    <div style="min-width: 250px;">
+                        <h3 style="margin: 0 0 10px 0; color: #DC143C;">Step ${i + 1}: ${location.name}</h3>
+                        <p style="margin: 5px 0;"><strong>${location.description}</strong></p>
+                        <div style="background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 5px;">
+                            <strong style="color: #667eea;">📖 ${location.scripture}</strong>
+                        </div>
+                        ${learnMoreBtn}
+                    </div>
+                `;
+
+                marker.bindPopup(popupContent, { maxWidth: 300 });
+                
+                if (isCurrentStop) {
+                    marker.openPopup();
+                    map.setView(location.coords, 8);
+                }
+                
+                activeMarkers.push(marker);
+            }
+
+            // Update step counter
+            document.getElementById('currentStep').textContent = 
+                `Step ${currentStep + 1} of ${exodusRoute.length}: ${exodusRoute[currentStep].name}`;
+        }
+
+        function nextStep() {
+            if (currentStep < exodusRoute.length - 1) {
+                currentStep++;
+                showCurrentStep();
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                showCurrentStep();
+            }
+        }
+
+        function resetJourney() {
+            currentStep = 0;
+            showCurrentStep();
+        }
+
+        function toggleScripture(index) {
+            const preview = document.querySelector(`.scripture-preview-${index}`);
+            const full = document.querySelector(`.scripture-full-${index}`);
+            const button = event.target;
+            
+            if (preview.style.display === 'none') {
+                preview.style.display = 'block';
+                full.style.display = 'none';
+                button.textContent = 'Read Full Passage';
+            } else {
+                preview.style.display = 'none';
+                full.style.display = 'block';
+                button.textContent = 'Show Less';
+            }
+        }
+
+        function showTribalAllotments() {
+            setActiveNavButton('Tribal Allotments');
+            document.getElementById('stepControls').style.display = 'none';
+            showAllTribes();
+        }
+
+        function highlightTribe(tribeKey) {
+            clearMap();
+            document.getElementById('stepControls').style.display = 'none';
+            const tribeTerritories = tribalTerritories.filter(t => t.tribe === tribeKey);
+            const tribeInfo = tribes[tribeKey];
+
+            // Draw boundary if it exists
+            const boundaryKeys = {
+                'judah': 'judah',
+                'benjamin': 'benjamin',
+                'simeon': 'simeon',
+                'dan': 'dan',
+                'zebulun': 'zebulun',
+                'issachar': 'issachar',
+                'asher': 'asher',
+                'naphtali': 'naphtali',
+                'reuben': 'reuben',
+                'gad': 'gad',
+                'joseph': ['ephraim', 'manasseh_west', 'manasseh_east']
+            };
+
+            const boundaryKey = boundaryKeys[tribeKey];
+            if (boundaryKey) {
+                const keys = Array.isArray(boundaryKey) ? boundaryKey : [boundaryKey];
+                keys.forEach(key => {
+                    if (tribalBoundaries[key]) {
+                        const polygon = L.polygon(tribalBoundaries[key], {
+                            color: tribeInfo.color,
+                            fillColor: tribeInfo.color,
+                            fillOpacity: 0.25,
+                            weight: 3,
+                            opacity: 0.8
+                        }).addTo(map);
+                        polylines.push(polygon);
+                    }
+                });
+            }
+
+            tribeTerritories.forEach(territory => {
+                const marker = L.circleMarker(territory.coords, {
+                    radius: 12,
+                    fillColor: tribeInfo.color,
+                    color: '#fff',
+                    weight: 3,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }).addTo(map);
+
+                const popupContent = `
+                    <div style="min-width: 200px;">
+                        <h3 style="margin: 0 0 8px 0; color: #DC143C; font-size: 1em; line-height: 1.3;">${territory.name}</h3>
+                        <p style="margin: 3px 0; font-size: 0.9em; line-height: 1.4;"><strong>Tribe:</strong> ${tribeInfo.name}</p>
+                        <p style="margin: 3px 0; font-size: 0.85em; line-height: 1.4;">${territory.description}</p>
+                        <div style="background: #f8f9fa; padding: 8px; margin-top: 8px; border-radius: 5px;">
+                            <div style="color: #667eea; font-size: 0.8em; font-weight: 600;">${territory.scripture}</div>
+                        </div>
+                        <div style="background: #fff3cd; padding: 8px; margin-top: 8px; border-radius: 5px;">
+                            <div style="color: #856404; font-size: 0.8em; font-weight: 600;">${tribeInfo.blessing}</div>
+                        </div>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent, { maxWidth: 300 }).openPopup();
+                markers.push(marker);
+            });
+
+            if (tribeTerritories.length > 0) {
+                map.setView(tribeTerritories[0].coords, 9);
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.map-content, .scripture-content, .quiz-content').forEach(content => {
+                content.style.display = 'none';
+                content.classList.remove('active');
+            });
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Content').style.display = 'block';
+            document.getElementById(tabName + 'Content').classList.add('active');
+        }
+
+        function startQuiz() {
+            currentQuiz = 0;
+            quizScore = 0;
+            showQuizQuestion();
+        }
+
+        function showQuizQuestion() {
+            const quizArea = document.getElementById('quizArea');
+            if (currentQuiz >= quizQuestions.length) {
+                quizArea.innerHTML = `
+                    <div class="quiz-question">
+                        <h3>Quiz Complete! 🎉</h3>
+                        <p>You scored ${quizScore} out of ${quizQuestions.length}</p>
+                        <button class="btn btn-primary" onclick="startQuiz()">Try Again</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const question = quizQuestions[currentQuiz];
+            quizArea.innerHTML = `
+                <div class="quiz-question">
+                    <h3>Question ${currentQuiz + 1} of ${quizQuestions.length}</h3>
+                    <p style="font-size: 1.1em; margin: 15px 0;">${question.question}</p>
+                    <div class="quiz-options">
+                        ${question.options.map((option, index) => `
+                            <div class="quiz-option" onclick="checkAnswer(${index})">${option}</div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function checkAnswer(selected) {
+            const question = quizQuestions[currentQuiz];
+            const options = document.querySelectorAll('.quiz-option');
+            
+            if (selected === question.correct) {
+                options[selected].classList.add('correct');
+                quizScore++;
+            } else {
+                options[selected].classList.add('incorrect');
+                options[question.correct].classList.add('correct');
+            }
+
+            setTimeout(() => {
+                currentQuiz++;
+                showQuizQuestion();
+            }, 1500);
+        }
+
+        // Initialize with all tribes visible
+        showAllTribes();
+    </script>
+</body>
+</html>
